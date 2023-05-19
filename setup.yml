@@ -82,6 +82,10 @@
         - "node1"
         - "node2"
         - "node3"
+      delegate_to: manager
+      when: "'manager' in group_names"
 
     - name: Apply OSDs using Ceph orchestrator
       shell: ceph orch apply osd --all-available-devices
+      delegate_to: manager
+      when: "'manager' in group_names"
