@@ -1,0 +1,71 @@
+---
+- name: Setup nodes and manager
+  hosts: all
+  become: true
+  tasks:
+    - name: Update yum packages
+      yum:
+        name: '*'
+        state: latest
+
+    - name: Install required packages
+      yum:
+        name: attr,wget,nano,lvm2,quota,wget,nano,curl,vim,lsof,git,sshpass,epel-release,zip,python3
+        state: present
+
+    - name: Update yum packages again
+      yum:
+        name: '*'
+        state: latest
+
+    - name: Download and install cephadm
+      shell: |
+        curl --silent --remote-name --location https://github.com/ceph/ceph/raw/quincy/src/cephadm/cephadm &&
+        chmod +x cephadm &&
+        ./cephadm add-repo --release quincy &&
+        ./cephadm install &&
+        ./cephadm install ceph-common
+
+    - name: Update /etc/hosts file
+      lineinfile:
+        line: "{{ item }}"
+        dest: /etc/hosts
+      with_items:
+        - "10.10.0.10 manager"
+        - "10.10.0.11 node1"
+        - "10.10.0.12 node2"
+        - "10.10.0.13 node3"
+
+    - name: Bootstrap Ceph cluster (manager only)
+      shell: cephadm bootstrap --mon-ip 10.10.0.10 --cluster-network=10.10.0.10/29
+      when: "'manager' in group_names"
+
+    - name: Add SSH keys for other nodes (manager only)
+      lineinfile:
+        line: "{{ item }}"
+        dest: /root/.ssh/known_hosts
+      with_items:
+        - "node1"
+        - "node2"
+        - "node3"
+      delegate_to: manager
+      when: "'manager' in group_names"
+
+    - name: Copy SSH keys to other nodes (manager only)
+      shell: ssh-copy-id -f -i /etc/ceph/ceph.pub root@{{ item }}
+      with_items:
+        - "node1"
+        - "node2"
+        - "node3"
+      delegate_to: manager
+      when: "'manager' in group_names"
+
+    - name: Add hosts to Ceph orchestrator
+      shell: ceph orch host add {{ item }} {{ hostvars[item]['ansible_host'] }}
+      with_items:
+        - "node1"
+        - "node2"
+        - "node3"
+
+    - name: Apply OSDs using Ceph orchestrator
+      shell: ceph orch apply osd --all-available-devices
