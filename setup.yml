@@ -53,7 +53,7 @@
         - "10.10.0.13 node3"
 
     - name: Bootstrap Ceph cluster (manager only)
-      shell: cephadm bootstrap --mon-ip 10.10.0.10 --cluster-network=10.10.0.10/29
+      shell: cephadm bootstrap --mon-ip 10.10.0.10
       when: "'manager' in group_names"
 
     - name: Add SSH keys for other nodes (manager only)
