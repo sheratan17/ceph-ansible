@@ -51,20 +51,9 @@
         - "10.10.0.11 node1"
         - "10.10.0.12 node2"
         - "10.10.0.13 node3"
-
-    - name: Add SSH keys for other nodes (manager only)
-      lineinfile:
-        line: "{{ item }}"
-        dest: /root/.ssh/known_hosts
-      with_items:
-        - "node1"
-        - "node2"
-        - "node3"
-      delegate_to: manager
-      when: "'manager' in group_names"
       
     - name: Bootstrap Ceph cluster (manager only)
-      shell: cephadm bootstrap --mon-ip 10.10.0.10
+      shell: cephadm bootstrap --mon-ip PUBLIC_IP --cluster-network=10.10.0.0/24
       when: "'manager' in group_names"
 
     - name: Copy SSH keys to other nodes (manager only)
