@@ -72,7 +72,7 @@
     - name: Bootstrap Ceph
       command: cephadm bootstrap --mon-ip 10.10.0.10 --cluster-network=10.10.0.0/24
 	  
-	- name: Print Ceph cluster bootstrap password
+    - name: Print Ceph cluster bootstrap password
       debug:
         var: ceph_bootstrap_output.stdout_lines[-1]
       when: ceph_bootstrap_output is defined and ceph_bootstrap_output.stdout_lines  
