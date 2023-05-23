@@ -33,3 +33,34 @@ Reboot all server
 Run in storage node:
 mount -t ceph :/ /mnt/docker_cephfs -o name=docker,secretfile=/etc/ceph/docker.secret
 node1,node2,node3:/     /mnt/docker_cephfs    ceph    name=docker,secretfile=/etc/ceph/docker.secret,noatime,_netdev    0     2 #add to /etc/fstab
+
+[root@manager ~]# grep nginx /var/log/audit/audit.log | \
+>      grep denied | audit2allow -m nginxlocalconf > nginxlocalconf.te
+[root@manager ~]# cat nginxlocalconf.te
+
+module nginxlocalconf 1.0;
+
+require {
+        type http_port_t;
+        type default_t;
+        type home_root_t;
+        type httpd_t;
+        class file read;
+        class tcp_socket name_connect;
+}
+
+#============= httpd_t ==============
+allow httpd_t default_t:file read;
+allow httpd_t home_root_t:file read;
+
+#!!!! This avc can be allowed using one of the these booleans:
+#     httpd_can_network_connect, httpd_graceful_shutdown, httpd_can_network_relay, nis_enabled
+allow httpd_t http_port_t:tcp_socket name_connect;
+[root@manager ~]# grep nginx /var/log/audit/audit.log | grep denied | \
+>    audit2allow -M nginxlocalconf
+******************** IMPORTANT ***********************
+To make this policy package active, execute:
+
+semodule -i nginxlocalconf.pp
+
+[root@manager ~]# semodule -i nginxlocalconf.pp

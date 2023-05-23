@@ -97,3 +97,16 @@
 
     - name: Apply OSD on all available devices
       command: ceph orch apply osd --all-available-devices
+      
+- name: Configure firewall on manager host
+  hosts: manager
+  become: true
+  tasks:
+    - name: Add HTTP service to firewall
+      command: firewall-cmd --zone=public --add-service=http --permanent
+
+    - name: Add HTTPS service to firewall
+      command: firewall-cmd --zone=public --add-service=https --permanent
+
+    - name: Reload firewall
+      command: firewall-cmd --reload
