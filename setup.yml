@@ -48,12 +48,12 @@
     - name: Add ceph repository
       command: ./cephadm add-repo --release quincy
       args:
-        chdir: /root/cephadm
+        chdir: /root
 
     - name: Install ceph-common
       command: ./cephadm install ceph-common
       args:
-        chdir: /root/cephadm
+        chdir: /root
 
     - name: Update /etc/hosts file
       lineinfile:
@@ -69,6 +69,11 @@
   hosts: manager
   become: true
   tasks:
+      - name: Install cephadm
+      command: ./cephadm install
+      args:
+        chdir: /root
+        
     - name: Bootstrap Ceph
       command: cephadm bootstrap --mon-ip 10.10.0.10 --cluster-network=10.10.0.0/24
 

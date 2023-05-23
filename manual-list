@@ -64,3 +64,5 @@ To make this policy package active, execute:
 semodule -i nginxlocalconf.pp
 
 [root@manager ~]# semodule -i nginxlocalconf.pp
+
+[root@manager ~]# ceph dashboard ac-user-set-password admin -i pass.txt
