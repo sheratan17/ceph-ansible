@@ -1,117 +1,85 @@
 ---
 - name: Update packages and install dependencies
-  hosts: node1,node2,node3,manager
+  hosts: node1,node2,node3,node4,manager
   become: true
   tasks:
     - name: Update all packages
       yum:
         name: "*"
         state: latest
-
     - name: Install required packages
       yum:
-        name: "attr,wget,nano,lvm2,quota,wget,nano,curl,vim,lsof,git,sshpass,epel-release,zip,python3"
+        name: attr,wget,nano,lvm2,quota,wget,nano,curl,vim,lsof,git,sshpass,epel-release,zip,python3,podman
         state: present
-
     - name: Update all packages again
       yum:
         name: "*"
         state: latest
-
-    - name: Add Docker repository
-      dnf_repository:
-        name: docker-ce
-        description: Docker CE Stable - $basearch
-        baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
-        enabled: yes
-        gpgcheck: yes
-        gpgkey: https://download.docker.com/linux/centos/gpg
-        repo_gpgcheck: yes
-
-    - name: Install Docker packages
-      dnf:
-        name: "docker-ce,docker-ce-cli,containerd.io,docker-compose-plugin"
-        state: present
-
-    - name: Enable and start Docker service
-      service:
-        name: docker
-        enabled: yes
-        state: started
-
     - name: Download cephadm
       get_url:
         url: https://github.com/ceph/ceph/raw/quincy/src/cephadm/cephadm
-        dest: /root/cephadm
-        mode: '0755'
-
+        dest: /root
+        mode: "0755"
     - name: Add ceph repository
       command: ./cephadm add-repo --release quincy
       args:
         chdir: /root
-
     - name: Install ceph-common
       command: ./cephadm install ceph-common
       args:
         chdir: /root
-
     - name: Update /etc/hosts file
       lineinfile:
         path: /etc/hosts
         line: "{{ item }}"
       loop:
-        - "10.10.0.10 manager"
-        - "10.10.0.11 node1"
-        - "10.10.0.12 node2"
-        - "10.10.0.13 node3"
-
+        - 10.10.0.10 manager
+        - 10.10.0.11 node1
+        - 10.10.0.12 node2
+        - 10.10.0.13 node3
+        - 10.10.0.14 node4
 - name: Bootstrap Ceph on manager host
   hosts: manager
   become: true
   tasks:
-      - name: Install cephadm
+    - name: Install required packages
+      yum:
+        name: nginx
+        state: present
+    - name: SSH Keyscan
+      command: ssh-keyscan -t rsa {{ item }} >> /root/.ssh/known_hosts
+      with_items:
+        - node1
+        - node2
+        - node3
+        - node4
+    - name: Install Cephadm
       command: ./cephadm install
       args:
         chdir: /root
-        
     - name: Bootstrap Ceph
-      command: cephadm bootstrap --mon-ip 10.10.0.10 --cluster-network=10.10.0.0/24
-
-    - name: Print Ceph cluster bootstrap password
-      debug:
-        var: ceph_bootstrap_output.stdout_lines[-1]
-      when: ceph_bootstrap_output is defined and ceph_bootstrap_output.stdout_lines  
-
-    - name: Copy ceph.pub to node1
-      command: ssh-copy-id -f -i /etc/ceph/ceph.pub root@node1
-
-    - name: Copy ceph.pub to node2
-      command: ssh-copy-id -f -i /etc/ceph/ceph.pub root@node2
-
-    - name: Copy ceph.pub to node3
-      command: ssh-copy-id -f -i /etc/ceph/ceph.pub root@node3
-
-    - name: Add node1 as a host in ceph orch
-      command: ceph orch host add node1 10.10.0.11
-
-    - name: Add node2 as a host in ceph orch
-      command: ceph orch host add node2 10.10.0.12
-
-    - name: Add node3 as a host in ceph orch
-      command: ceph orch host add node3 10.10.0.13
-
+      command: ./cephadm bootstrap --mon-ip 10.10.0.10 --cluster-network=10.10.0.0/24
+      args:
+        chdir: /root
+    - name: Copy ceph.pub to all node
+      command: ssh-copy-id -f -i /etc/ceph/ceph.pub -o StrictHostKeyChecking=no root@{{ item }}
+      with_items:
+        - node1
+        - node2
+        - node3
+        - node4
+    - name: Add hosts to Ceph orchestrator
+      shell: ceph orch host add {{ item }} {{ hostvars[item]['ansible_host'] }}
+      with_items:
+        - node1
+        - node2
+        - node3
+        - node4
     - name: Apply OSD on all available devices
       command: ceph orch apply osd --all-available-devices
-      
-- name: Configure firewall on manager host
-  hosts: manager
-  become: true
-  tasks:
     - name: Add HTTP service to firewall
       command: firewall-cmd --zone=public --add-service=http --permanent
-
     - name: Add HTTPS service to firewall
       command: firewall-cmd --zone=public --add-service=https --permanent
-
     - name: Reload firewall
       command: firewall-cmd --reload
