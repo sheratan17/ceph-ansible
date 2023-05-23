@@ -1,80 +1,99 @@
-- name: Setup nodes and manager
-  hosts: all
+---
+- name: Update packages and install dependencies
+  hosts: node1,node2,node3,manager
   become: true
   tasks:
-    - name: Update yum packages
+    - name: Update all packages
       yum:
-        name: '*'
+        name: "*"
         state: latest
 
     - name: Install required packages
       yum:
-        name: attr,wget,nano,lvm2,quota,wget,nano,curl,vim,lsof,git,sshpass,epel-release,zip,python3
+        name: "attr,wget,nano,lvm2,quota,wget,nano,curl,vim,lsof,git,sshpass,epel-release,zip,python3"
         state: present
 
-    - name: Update yum packages again
+    - name: Update all packages again
       yum:
-        name: '*'
+        name: "*"
         state: latest
 
-    - name: Add Docker CE repository
-      shell: dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+    - name: Add Docker repository
+      dnf_repository:
+        name: docker-ce
+        description: Docker CE Stable - $basearch
+        baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: https://download.docker.com/linux/centos/gpg
+        repo_gpgcheck: yes
 
-    - name: Install and configure Docker
+    - name: Install Docker packages
       dnf:
-        name: docker-ce,docker-ce-cli,containerd.io
+        name: "docker-ce,docker-ce-cli,containerd.io,docker-compose-plugin"
         state: present
-
-    - name: Add Docker Compose plugin
-      shell: dnf install docker-compose-plugin -y
 
     - name: Enable and start Docker service
       service:
         name: docker
+        enabled: yes
         state: started
-        enabled: true
-        
-    - name: Download and install cephadm
-      shell: |
-        curl --silent --remote-name --location https://github.com/ceph/ceph/raw/quincy/src/cephadm/cephadm &&
-        chmod +x cephadm &&
-        ./cephadm add-repo --release quincy &&
-        ./cephadm install &&
-        ./cephadm install ceph-common
+
+    - name: Download cephadm
+      get_url:
+        url: https://github.com/ceph/ceph/raw/quincy/src/cephadm/cephadm
+        dest: /root/cephadm
+        mode: '0755'
+
+    - name: Add ceph repository
+      command: ./cephadm add-repo --release quincy
+      args:
+        chdir: /root/cephadm
+
+    - name: Install ceph-common
+      command: ./cephadm install ceph-common
+      args:
+        chdir: /root/cephadm
 
     - name: Update /etc/hosts file
       lineinfile:
+        path: /etc/hosts
         line: "{{ item }}"
-        dest: /etc/hosts
-      with_items:
+      loop:
         - "10.10.0.10 manager"
         - "10.10.0.11 node1"
         - "10.10.0.12 node2"
         - "10.10.0.13 node3"
-      
-    - name: Bootstrap Ceph cluster (manager only)
-      shell: cephadm bootstrap --mon-ip PUBLIC_IP --cluster-network=10.10.0.0/24
-      when: "'manager' in group_names"
 
-    - name: Copy SSH keys to other nodes (manager only)
-      shell: ssh-copy-id -f -i /etc/ceph/ceph.pub root@{{ item }}
-      with_items:
-        - "node1"
-        - "node2"
-        - "node3"
-      delegate_to: manager
-      when: "'manager' in group_names"
+- name: Bootstrap Ceph on manager host
+  hosts: manager
+  become: true
+  tasks:
+    - name: Bootstrap Ceph
+      command: cephadm bootstrap --mon-ip 10.10.0.10 --cluster-network=10.10.0.0/24
+	  
+	- name: Print Ceph cluster bootstrap password
+      debug:
+        var: ceph_bootstrap_output.stdout_lines[-1]
+      when: ceph_bootstrap_output is defined and ceph_bootstrap_output.stdout_lines  
 
-    - name: Add hosts to Ceph orchestrator
-      shell: ceph orch host add {{ item }} {{ hostvars[item]['ansible_host'] }}
-      with_items:
-        - "node1"
-        - "node2"
-        - "node3"
-      delegate_to: manager
-      when: "'manager' in group_names"
+    - name: Copy ceph.pub to node1
+      command: ssh-copy-id -f -i /etc/ceph/ceph.pub root@node1
 
-    - name: Apply OSDs using Ceph orchestrator
-      shell: ceph orch apply osd --all-available-devices
-      delegate_to: manager
-      when: "'manager' in group_names"
+    - name: Copy ceph.pub to node2
+      command: ssh-copy-id -f -i /etc/ceph/ceph.pub root@node2
+
+    - name: Copy ceph.pub to node3
+      command: ssh-copy-id -f -i /etc/ceph/ceph.pub root@node3
+
+    - name: Add node1 as a host in ceph orch
+      command: ceph orch host add node1 10.10.0.11
+
+    - name: Add node2 as a host in ceph orch
+      command: ceph orch host add node2 10.10.0.12
+
+    - name: Add node3 as a host in ceph orch
+      command: ceph orch host add node3 10.10.0.13
+
+    - name: Apply OSD on all available devices
+      command: ceph orch apply osd --all-available-devices
