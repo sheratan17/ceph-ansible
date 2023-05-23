@@ -68,13 +68,16 @@
         - node2
         - node3
         - node4
-    - name: Add hosts to Ceph orchestrator
-      shell: ceph orch host add {{ item }} {{ hostvars[item]['ansible_host'] }}
-      with_items:
-        - node1
-        - node2
-        - node3
-        - node4
+    - name: Add node1 as a host in ceph orch
+      command: ceph orch host add node1 10.10.0.11
+    - name: Add node2 as a host in ceph orch
+      command: ceph orch host add node2 10.10.0.12
+    - name: Add node3 as a host in ceph orch
+      command: ceph orch host add node3 10.10.0.13   
+    - name: Add node3 as a host in ceph orch
+      command: ceph orch host add node3 10.10.0.14
+    - name: Apply OSD on all available devices
+      command: ceph orch apply osd --all-available-devices      
     - name: Apply OSD on all available devices
       command: ceph orch apply osd --all-available-devices
     - name: Add HTTP service to firewall
