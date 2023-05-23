@@ -74,7 +74,7 @@
       command: ceph orch host add node2 10.10.0.12
     - name: Add node3 as a host in ceph orch
       command: ceph orch host add node3 10.10.0.13   
-    - name: Add node3 as a host in ceph orch
+    - name: Add node4 as a host in ceph orch
       command: ceph orch host add node4 10.10.0.14
     - name: Apply OSD on all available devices
       command: ceph orch apply osd --all-available-devices
