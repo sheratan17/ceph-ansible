@@ -24,6 +24,9 @@ ceph auth get-key client.docker > docker.secret
 scp docker.secret root@node1:/etc/ceph/
 scp ceph.conf root@node1:/etc/ceph/
 scp ceph.client.docker.keyring root@node1:/etc/ceph/
+firewall-cmd --zone=public --add-service=http --permanent
+firewall-cmd --zone=public --add-service=https --permanent
+firewall-cmd --reload
 
 Reboot all server
 
