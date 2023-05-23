@@ -1,0 +1,32 @@
+Run in all node (including manager):
+---
+yum update -y
+yum install attr wget nano lvm2 quota wget nano curl vim lsof git sshpass epel-release zip python3 -y
+yum update -y
+curl --silent --remote-name --location https://github.com/ceph/ceph/raw/quincy/src/cephadm/cephadm && chmod +x cephadm && ./cephadm add-repo --release quincy && ./cephadm install && cephadm install ceph-common
+echo -e "
+10.89.1.80 manager
+10.89.1.81 node1
+10.89.1.82 node2
+10.89.1.83 node3" >> /etc/hosts
+
+Run in manager node:
+---
+cephadm bootstrap --mon-ip 10.10.0.10 --cluster-network=10.10.0.0/24
+ssh-copy-id -f -i /etc/ceph/ceph.pub root@node1
+ssh-copy-id -f -i /etc/ceph/ceph.pub root@node2
+ssh-copy-id -f -i /etc/ceph/ceph.pub root@node3
+ceph osd pool create docker_data
+ceph osd pool create docker_metadata
+ceph fs new docker_cephfs docker_metadata docker_data
+ceph fs authorize docker_cephfs client.docker / rwp /mnt/docker_cephfs rwp | sudo tee /etc/ceph/ceph.client.docker.keyring
+ceph auth get-key client.docker > docker.secret
+scp docker.secret root@node1:/etc/ceph/
+scp ceph.conf root@node1:/etc/ceph/
+scp ceph.client.docker.keyring root@node1:/etc/ceph/
+
+Reboot all server
+
+Run in storage node:
+mount -t ceph :/ /mnt/docker_cephfs -o name=docker,secretfile=/etc/ceph/docker.secret
+node1,node2,node3:/     /mnt/docker_cephfs    ceph    name=docker,secretfile=/etc/ceph/docker.secret,noatime,_netdev    0     2 #add to /etc/fstab
