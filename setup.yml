@@ -77,11 +77,11 @@
       command: ceph orch host add node4 10.89.1.14
     - name: Apply OSD on all available devices
       command: ceph orch apply osd --all-available-devices
-    - name: Restart firewall service
-      command: service firewalld restart
-    - name: Add HTTP service to firewall
-      command: firewall-cmd --zone=public --add-service=http --permanent
-    - name: Add HTTPS service to firewall
-      command: firewall-cmd --zone=public --add-service=https --permanent
-    - name: Reload firewall
-      command: firewall-cmd --reload
+    #- name: Restart firewall service
+    #  command: service firewalld restart
+    #- name: Add HTTP service to firewall
+    #  command: firewall-cmd --zone=public --add-service=http --permanent
+    #- name: Add HTTPS service to firewall
+    #  command: firewall-cmd --zone=public --add-service=https --permanent
+    #- name: Reload firewall
+    #  command: firewall-cmd --reload
