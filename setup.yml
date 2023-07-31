@@ -43,7 +43,7 @@
   tasks:
     - name: Install required packages
       yum:
-        name: nginx
+        name: nginx,firewalld
         state: present
     - name: SSH Keyscan
       command: ssh-keyscan -t rsa {{ item }} >> /root/.ssh/known_hosts
