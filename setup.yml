@@ -57,7 +57,7 @@
       args:
         chdir: /root
     - name: Bootstrap Ceph
-      command: ./cephadm bootstrap --mon-ip 10.10.0.11 --cluster-network=10.10.0.0/24
+      command: ./cephadm bootstrap --mon-ip 10.89.1.11 --cluster-network=10.89.1.0/24
       args:
         chdir: /root
     - name: Copy ceph.pub to all node
@@ -68,16 +68,16 @@
         - node3
         - node4
     - name: Add node1 as a host in ceph
-      command: ceph orch host add node1 10.10.0.11
+      command: ceph orch host add node1 10.89.1.11
     - name: Add node2 as a host in ceph
-      command: ceph orch host add node2 10.10.0.12
+      command: ceph orch host add node2 10.89.1.12
     - name: Add node3 as a host in ceph
-      command: ceph orch host add node3 10.10.0.13   
+      command: ceph orch host add node3 10.89.1.13   
     - name: Add node4 as a host in ceph
-      command: ceph orch host add node4 10.10.0.14
+      command: ceph orch host add node4 10.89.1.14
     - name: Apply OSD on all available devices
       command: ceph orch apply osd --all-available-devices
-    - name: Restart firewall services
+    - name: Restart firewall service
       command: service firewalld restart
     - name: Add HTTP service to firewall
       command: firewall-cmd --zone=public --add-service=http --permanent
