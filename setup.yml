@@ -43,7 +43,7 @@
   tasks:
     - name: Install required packages
       yum:
-        name: nginx,firewalld
+        name: nginx
         state: present
     - name: SSH Keyscan
       command: ssh-keyscan -t rsa {{ item }} >> /root/.ssh/known_hosts
@@ -67,21 +67,3 @@
         - node2
         - node3
         - node4
-    - name: Add node1 as a host in ceph
-      command: ceph orch host add node1 10.89.1.11
-    - name: Add node2 as a host in ceph
-      command: ceph orch host add node2 10.89.1.12
-    - name: Add node3 as a host in ceph
-      command: ceph orch host add node3 10.89.1.13   
-    - name: Add node4 as a host in ceph
-      command: ceph orch host add node4 10.89.1.14
-    - name: Apply OSD on all available devices
-      command: ceph orch apply osd --all-available-devices
-    #- name: Restart firewall service
-    #  command: service firewalld restart
-    #- name: Add HTTP service to firewall
-    #  command: firewall-cmd --zone=public --add-service=http --permanent
-    #- name: Add HTTPS service to firewall
-    #  command: firewall-cmd --zone=public --add-service=https --permanent
-    #- name: Reload firewall
-    #  command: firewall-cmd --reload
