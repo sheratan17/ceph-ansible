@@ -17,7 +17,7 @@
         state: latest
     - name: Download cephadm
       get_url:
-        url: https://github.com/ceph/ceph/raw/quincy/src/cephadm/cephadm
+        url: https://download.ceph.com/rpm-18.2.0/el9/noarch/cephadm
         dest: /root
         mode: "0755"
     - name: Add ceph repository
@@ -33,10 +33,10 @@
         path: /etc/hosts
         line: "{{ item }}"
       loop:
-        - 10.89.1.11 node1
-        - 10.89.1.12 node2
-        - 10.89.1.13 node3
-        - 10.89.1.14 node4
+        - 10.10.10.71 ceph-manager
+        - 10.10.10.91 ceph-1
+        - 10.10.10.92 ceph-2
+        - 10.10.10.93 ceph-3
 - name: Bootstrap Ceph on manager host
   hosts: manager
   become: true
@@ -48,22 +48,21 @@
     - name: SSH Keyscan
       command: ssh-keyscan -t rsa {{ item }} >> /root/.ssh/known_hosts
       with_items:
-        - node1
-        - node2
-        - node3
-        - node4
+        - ceph-manager
+        - ceph-1
+        - ceph-2
+        - ceph-3
     - name: Install Cephadm
       command: ./cephadm install
       args:
         chdir: /root
     - name: Bootstrap Ceph
-      command: ./cephadm bootstrap --mon-ip 10.89.1.11 --cluster-network=10.89.1.0/24
+      command: ./cephadm bootstrap --mon-ip 10.10.10.71 --cluster-network=10.10.10.0/24
       args:
         chdir: /root
     - name: Copy ceph.pub to all node
       command: ssh-copy-id -f -i /etc/ceph/ceph.pub -o StrictHostKeyChecking=no root@{{ item }}
       with_items:
-        - node1
-        - node2
-        - node3
-        - node4
+        - ceph-1
+        - ceph-2
+        - ceph-3
