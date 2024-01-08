@@ -21,7 +21,7 @@
         dest: /root
         mode: "0755"
     - name: Add ceph repository
-      command: ./cephadm add-repo --release quincy
+      command: ./cephadm add-repo --release reef
       args:
         chdir: /root
     - name: Install ceph-common
